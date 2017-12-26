@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # PostgreSQL Backup Script Ver 1.0
 # http://autopgsqlbackup.frozenpc.net
@@ -19,7 +19,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -29,13 +29,15 @@
 # (Detailed instructions below variables)
 #=====================================================================
 
+### Default values
+
 # Username to access the PostgreSQL server e.g. dbuser
 USERNAME=postgres
 
 # Password
 # create a file $HOME/.pgpass containing a line like this
 #   hostname:*:*:dbuser:dbpass
-# replace hostname with the value of DBHOST and postgres with 
+# replace hostname with the value of DBHOST and postgres with
 # the value of USERNAME
 
 # Host name (or IP address) of PostgreSQL server e.g localhost
@@ -45,14 +47,14 @@ DBHOST=localhost
 DBNAMES="all"
 
 # Backup directory location e.g /backups
-BACKUPDIR="/home/backups/pgsql_backups"
+BACKUPDIR="/var/backup/db"
 
 # Mail setup
 # What would you like to be mailed to you?
 # - log   : send only log file
 # - files : send log file and sql files as attachments (see docs)
 # - stdout : will simply output the log to the screen if run manually.
-MAILCONTENT="log"
+MAILCONTENT="stdout"
 
 # Set the maximum allowed email size in k. (4000 = approx 5MB email [see docs])
 MAXATTSIZE="4000"
@@ -81,14 +83,13 @@ SEPDIR=yes
 DOWEEKLY=6
 
 # Choose Compression type. (gzip or bzip2)
-COMP=gzip
+COMP=bzip2
 
 # Command to run before backups (uncomment to use)
 #PREBACKUP="/etc/pgsql-backup-pre"
 
 # Command run after backups (uncomment to use)
-POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
-
+#POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
 
 #=====================================================================
 # Options documentation
@@ -117,7 +118,7 @@ POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
 # email addresses in a space seperated list.
 # (If you set mail content to "log" you will require access to the "mail" program
 # on your server. If you set this to "files" you will have to have mutt installed
-# on your server. If you set it sto stdout it will log to the screen if run from 
+# on your server. If you set it sto stdout it will log to the screen if run from
 # the console or to the cron job owner if run through cron)
 #
 # MAXATTSIZE sets the largest allowed email attachments total (all backup files) you
@@ -128,7 +129,7 @@ POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
 # Finally copy automysqlbackup.sh to anywhere on your server and make sure
 # to set executable permission. You can also copy the script to
 # /etc/cron.daily to have it execute automatically every night or simply
-# place a symlink in /etc/cron.daily to the file if you wish to keep it 
+# place a symlink in /etc/cron.daily to the file if you wish to keep it
 # somwhere else.
 # NOTE:On Debian copy the file with no extention for it to be run
 # by cron e.g just name the file "automysqlbackup"
@@ -148,7 +149,7 @@ POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
 #
 # If you set DBNAMES="all" you can configure the option DBEXCLUDE. Other
 # wise this option will not be used.
-# This option can be used if you want to backup all dbs, but you want 
+# This option can be used if you want to backup all dbs, but you want
 # exclude some of them. (eg. a db is to big).
 #
 # Set CREATE_DATABASE to "yes" (the default) if you want your SQL-Dump to create
@@ -194,7 +195,7 @@ POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
 #
 # I take no resposibility for any data loss or corruption when using
 # this script..
-# This script will not help in the event of a hard drive crash. If a 
+# This script will not help in the event of a hard drive crash. If a
 # copy of the backup has not be stored offline or on another PC..
 # You should copy your backups offline regularly for best protection.
 #
@@ -206,6 +207,8 @@ POSTBACKUP="bash /home/backups/scripts/ftp_pgsql"
 #
 # VER 1.0 - (2005-03-25)
 #   Initial Release - based on AutoMySQLBackup 2.2
+# VER 1.1 - (2017-12-26)
+#   Add config file parameter - based on AutoMySQLBackup 3.0
 #
 #=====================================================================
 #=====================================================================
@@ -222,6 +225,26 @@ DOM=`date +%d`					# Date of the Month e.g. 27
 M=`date +%B`					# Month e.g January
 W=`date +%V`					# Week Number e.g 37
 VER=1.0						# Version Number
+NO_ARGS=0
+
+if (( $# == $NO_ARGS )); then   # Script invoked with no command-line args?
+  echo "Invoking backup with defaults values."
+else
+	while getopts ":c:blh" Option
+	do
+	  case $Option in
+		c   ) echo "Using \"$OPTARG\" as optional config file."; echo; opt_config_file="$OPTARG"; opt_flag_config_file=1;;
+		h	  )	echo "Usage `basename $0` options -ch"
+				echo -e "-c CONFIG_FILE\tSpecify optional config file."
+				echo -e "-h\tShow this help."
+				exit 0;;
+		*     ) echo "Unimplemented option chosen.";;   # Default.
+	  esac
+	done
+fi
+
+if (( $opt_flag_config_file )); then if [[ -r "${opt_config_file}" ]]; then source "${opt_config_file}"; else echo "Error: ${opt_config_file} can not be readen"; exit 1; fi; fi
+
 LOGFILE=$BACKUPDIR/$DBHOST-`date +%N`.log	# Logfile Name
 OPT=""						# OPT string for use with mysqldump ( see man mysqldump )
 BACKUPFILES=""					# thh: added for later mailing
@@ -283,6 +306,7 @@ return 0
 }
 
 
+
 # Run command before we begin
 if [ "$PREBACKUP" ]
 	then
@@ -317,7 +341,7 @@ fi
 # If backing up all DBs on the server
 if [ "$DBNAMES" = "all" ]; then
 	DBNAMES="`psql -U $USERNAME $HOST -l -A -F: | sed -ne "/:/ { /Name:Owner/d; /template0/d; s/:.*$//; p }"`"
-	
+
 	# If DBs are excluded
 	for exclude in $DBEXCLUDE
 	do
@@ -326,11 +350,11 @@ if [ "$DBNAMES" = "all" ]; then
 
         MDBNAMES=$DBNAMES
 fi
-	
+
 echo ======================================================================
 echo AutoPostgreSQLBackup VER $VER
 echo http://autopgsqlbackup.frozenpc.net/
-echo 
+echo
 echo Backup of Database Server - $DBHOST
 echo ======================================================================
 
@@ -342,7 +366,7 @@ echo ======================================================================
 	if [ $DOM = "01" ]; then
 		for MDB in $MDBNAMES
 		do
- 
+
 			 # Prepare $DB for using
 		        MDB="`echo $MDB | sed 's/%/ /g'`"
 
@@ -362,18 +386,18 @@ echo ======================================================================
 	do
 	# Prepare $DB for using
 	DB="`echo $DB | sed 's/%/ /g'`"
-	
-	# Create Seperate directory for each DB
+
+	# Create Separate directory for each DB
 	if [ ! -e "$BACKUPDIR/daily/$DB" ]		# Check Daily DB Directory exists.
 		then
 		mkdir -p "$BACKUPDIR/daily/$DB"
 	fi
-	
+
 	if [ ! -e "$BACKUPDIR/weekly/$DB" ]		# Check Weekly DB Directory exists.
 		then
 		mkdir -p "$BACKUPDIR/weekly/$DB"
 	fi
-	
+
 	# Weekly Backup
 	if [ $DNOW = $DOWEEKLY ]; then
 		echo Weekly Backup of Database \( $DB \)
@@ -385,18 +409,18 @@ echo ======================================================================
 			else
 				REMW=`expr $W - 5`
 			fi
-		eval rm -fv "$BACKUPDIR/weekly/$DB/week.$REMW.*" 
+		eval rm -fv "$BACKUPDIR/weekly/$DB/week.$REMW.*"
 		echo
 			dbdump "$DB" "$BACKUPDIR/weekly/$DB/${DB}_week.$W.$DATE.sql"
 			compression "$BACKUPDIR/weekly/$DB/${DB}_week.$W.$DATE.sql"
 			BACKUPFILES="$BACKUPFILES $BACKUPDIR/weekly/$DB/${DB}_week.$W.$DATE.sql$SUFFIX"
 		echo ----------------------------------------------------------------------
-	
+
 	# Daily Backup
 	else
 		echo Daily Backup of Database \( $DB \)
 		echo Rotating last weeks Backup...
-		eval rm -fv "$BACKUPDIR/daily/$DB/*.$DOW.sql.*" 
+		eval rm -fv "$BACKUPDIR/daily/$DB/*.$DOW.sql.*"
 		echo
 			dbdump "$DB" "$BACKUPDIR/daily/$DB/${DB}_$DATE.$DOW.sql"
 			compression "$BACKUPDIR/daily/$DB/${DB}_$DATE.$DOW.sql"
@@ -432,19 +456,19 @@ echo ======================================================================
 			else
 				REMW=`expr $W - 5`
 			fi
-		eval rm -fv "$BACKUPDIR/weekly/week.$REMW.*" 
+		eval rm -fv "$BACKUPDIR/weekly/week.$REMW.*"
 		echo
 			dbdump "$DBNAMES" "$BACKUPDIR/weekly/week.$W.$DATE.sql"
 			compression "$BACKUPDIR/weekly/week.$W.$DATE.sql"
 			BACKUPFILES="$BACKUPFILES $BACKUPDIR/weekly/week.$W.$DATE.sql$SUFFIX"
 		echo ----------------------------------------------------------------------
-		
+
 	# Daily Backup
 	else
 		echo Daily Backup of Databases \( $DBNAMES \)
 		echo
 		echo Rotating last weeks Backup...
-		eval rm -fv "$BACKUPDIR/daily/*.$DOW.sql.*" 
+		eval rm -fv "$BACKUPDIR/daily/*.$DOW.sql.*"
 		echo
 			dbdump "$DBNAMES" "$BACKUPDIR/daily/$DATE.$DOW.sql"
 			compression "$BACKUPDIR/daily/$DATE.$DOW.sql"
