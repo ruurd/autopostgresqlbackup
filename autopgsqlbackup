@@ -32,7 +32,7 @@
 ### Default values
 
 # Username to access the PostgreSQL server e.g. dbuser
-USERNAME=postgres
+USERNAME=ruurd
 
 # Password
 # create a file $HOME/.pgpass containing a line like this
@@ -47,7 +47,7 @@ DBHOST=localhost
 DBNAMES="all"
 
 # Backup directory location e.g /backups
-BACKUPDIR="/var/backup/db"
+BACKUPDIR="/usr/local/var/backup/pg"
 
 # Mail setup
 # What would you like to be mailed to you?
@@ -340,7 +340,7 @@ fi
 
 # If backing up all DBs on the server
 if [ "$DBNAMES" = "all" ]; then
-	DBNAMES="`psql -U $USERNAME $HOST -l -A -F: | sed -ne "/:/ { /Name:Owner/d; /template0/d; s/:.*$//; p }"`"
+	DBNAMES="`psql -U $USERNAME $HOST -l -e -A -q -t -F: | grep ":" | grep -v "template0" | sed -ne "/:/ s/:.*$//;p"`"
 
 	# If DBs are excluded
 	for exclude in $DBEXCLUDE
