@@ -32,7 +32,7 @@
 ### Default values
 
 # Username to access the PostgreSQL server e.g. dbuser
-USERNAME=ruurd
+USERNAME=postgres
 
 # Password
 # create a file $HOME/.pgpass containing a line like this
@@ -47,7 +47,7 @@ DBHOST=localhost
 DBNAMES="all"
 
 # Backup directory location e.g /backups
-BACKUPDIR="/usr/local/var/backup/pg"
+BACKUPDIR="/var/backup/pg"
 
 # Mail setup
 # What would you like to be mailed to you?
