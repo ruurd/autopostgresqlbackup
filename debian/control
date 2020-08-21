@@ -1,7 +1,0 @@
-Source: exoscale-autopgsqlbackup
-Maintainer: Exoscale <ops@exoscale.ch>
-Build-Depends: debhelper (>= 9), lsb-release
-
-Package: exoscale-autopgsqlbackup
-Architecture: any
-Description: Automatic PostgreSQL Backup
