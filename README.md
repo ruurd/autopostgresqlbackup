@@ -1,4 +1,4 @@
 # autopostgresqlbackup
 Autopostgresqlbackup - backups of PostgreSQL databases
 
-A postgresql port of the automysqlbackup script. Original project: https://sourceforge.net/projects/autopgsqlbackup/
+A fork of the autopostgresqlbackup project by k0lter made suitable for macos. Should run as is.
